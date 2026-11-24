@@ -1,0 +1,248 @@
+{
+  "title": "Reauth Link for Spotify",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Reauth Link for Spotify",
+        "description": "Spotify sign-ins expire after 6 months. This integration sends the account owner a link, and they renew it on their own phone, without opening Home Assistant. Set up Spotify or SpotifyPlus before this one.",
+        "data": {
+          "url": "Public https address of this Home Assistant",
+          "time": "Time of the notices"
+        },
+        "data_description": {
+          "url": "Where Spotify sends the owner back after they approve, so their phone must be able to open it. Your own domain or Home Assistant Cloud (Nabu Casa) both work. Plain http does not: Spotify only accepts https.",
+          "time": "When something is due, the notice goes out at this time of the day."
+        }
+      },
+      "login": {
+        "title": "Login to renew",
+        "description": "First, add this address to the Redirect URIs of your app in the Spotify developer dashboard, and keep the one already there:\n\n`{redirect_uri}`",
+        "data": {
+          "login": "Login",
+          "owner": "Notify the account owner",
+          "admin": "Notify the administrator",
+          "days": "Days a sign-in lasts"
+        },
+        "data_description": {
+          "login": "Only logins of Spotify and SpotifyPlus that are already set up.",
+          "owner": "Gets the link 30 days before the sign-in expires, and again every 7 days until it is renewed.",
+          "admin": "Told when it is renewed, when the owner has not renewed it in the last 7 days, and when the link cannot be created. May stay empty.",
+          "days": "Spotify gives 6 months. 180 is a little under that, on purpose."
+        }
+      },
+      "reconfigure": {
+        "title": "Reauth Link for Spotify",
+        "description": "If you change the address, add the new one to the Redirect URIs of your app in the Spotify developer dashboard. Links already sent stop working. The address registered now is:\n\n`{redirect_uri}`",
+        "data": {
+          "url": "Public https address of this Home Assistant",
+          "time": "Time of the notices"
+        },
+        "data_description": {
+          "url": "Where Spotify sends the owner back after they approve, so their phone must be able to open it. Your own domain or Home Assistant Cloud (Nabu Casa) both work. Plain http does not: Spotify only accepts https.",
+          "time": "When something is due, the notice goes out at this time of the day."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Use https followed by a name the phone can reach from outside, not an IP address or a .local name.",
+      "not_https": "Spotify only accepts https, because the sign-in travels through this address. Use your own domain with https or Home Assistant Cloud (Nabu Casa).",
+      "my_missing": "The My Home Assistant integration is not loaded, and without it Home Assistant cannot build the {integration} link. Add `my:` (or `default_config:`) to configuration.yaml and restart.",
+      "missing_credentials": "The application credentials of {integration} are missing or unavailable. Add the Client ID and the Client Secret again in Settings, Devices & services, Application credentials.",
+      "pkce": "{integration} signs in with PKCE, where the secret is created and lost together with the window of Home Assistant that started it. A link cannot renew this kind of sign-in.",
+      "unsupported": "{integration} does not sign in through a plain authorization page, so a link cannot renew it.",
+      "flow_failed": "The reauthentication of {integration} failed inside Home Assistant ({error}). Update Home Assistant to {min_version} or newer, update {integration} and try again.",
+      "flow_aborted": "{integration} refused the reauthentication ({reason}). Update Home Assistant to {min_version} or newer, check {integration} and try again.",
+      "login_gone": "This login is no longer in Home Assistant.",
+      "no_account": "{integration} does not say which account this login belongs to, so Home Assistant would refuse the renewal as another account.",
+      "invalid_notify": "This action does not exist in this Home Assistant. Choose one from the list, such as notify.mobile_app_my_phone (an entity does not work here).",
+      "nobody": "Choose who gets the notices: the owner, the administrator, or both."
+    },
+    "abort": {
+      "single_instance_allowed": "Already set up. Use “Add login” there for another account.",
+      "reconfigure_successful": "Saved."
+    },
+    "create_entry": {
+      "default": "One last step: add this address to the Redirect URIs of your app in the Spotify developer dashboard, if you have not yet, and keep the one already there:\n\n`{redirect_uri}`"
+    }
+  },
+  "config_subentries": {
+    "login": {
+      "entry_type": "Login",
+      "initiate_flow": {
+        "user": "Add login",
+        "reconfigure": "Change login"
+      },
+      "step": {
+        "user": {
+          "title": "Add login",
+          "description": "First, add this address to the Redirect URIs of your app in the Spotify developer dashboard, and keep the one already there:\n\n`{redirect_uri}`",
+          "data": {
+            "login": "Login",
+            "owner": "Notify the account owner",
+            "admin": "Notify the administrator",
+            "days": "Days a sign-in lasts"
+          },
+          "data_description": {
+            "login": "Only logins of Spotify and SpotifyPlus that are already set up.",
+            "owner": "Gets the link 30 days before the sign-in expires, and again every 7 days until it is renewed.",
+            "admin": "Told when it is renewed, when the owner has not renewed it in the last 7 days, and when the link cannot be created. May stay empty.",
+            "days": "Spotify gives 6 months. 180 is a little under that, on purpose."
+          }
+        },
+        "reconfigure": {
+          "title": "Change login",
+          "description": "Who is told about {login}, and how long the sign-in lasts.",
+          "data": {
+            "owner": "Notify the account owner",
+            "admin": "Notify the administrator",
+            "days": "Days a sign-in lasts"
+          },
+          "data_description": {
+            "owner": "Gets the link 30 days before the sign-in expires, and again every 7 days until it is renewed.",
+            "admin": "Told when it is renewed, when the owner has not renewed it in the last 7 days, and when the link cannot be created. May stay empty.",
+            "days": "Spotify gives 6 months. 180 is a little under that, on purpose."
+          }
+        }
+      },
+      "error": {
+        "my_missing": "The My Home Assistant integration is not loaded, and without it Home Assistant cannot build the {integration} link. Add `my:` (or `default_config:`) to configuration.yaml and restart.",
+        "missing_credentials": "The application credentials of {integration} are missing or unavailable. Add the Client ID and the Client Secret again in Settings, Devices & services, Application credentials.",
+        "pkce": "{integration} signs in with PKCE, where the secret is created and lost together with the window of Home Assistant that started it. A link cannot renew this kind of sign-in.",
+        "unsupported": "{integration} does not sign in through a plain authorization page, so a link cannot renew it.",
+        "flow_failed": "The reauthentication of {integration} failed inside Home Assistant ({error}). Update Home Assistant to {min_version} or newer, update {integration} and try again.",
+        "flow_aborted": "{integration} refused the reauthentication ({reason}). Update Home Assistant to {min_version} or newer, check {integration} and try again.",
+        "login_gone": "This login is no longer in Home Assistant.",
+        "no_account": "{integration} does not say which account this login belongs to, so Home Assistant would refuse the renewal as another account.",
+        "invalid_notify": "This action does not exist in this Home Assistant. Choose one from the list, such as notify.mobile_app_my_phone (an entity does not work here).",
+        "nobody": "Choose who gets the notices: the owner, the administrator, or both."
+      },
+      "abort": {
+        "no_logins": "There is no other Spotify or SpotifyPlus login in this Home Assistant.",
+        "already_configured": "This login was already added.",
+        "reconfigure_successful": "Saved."
+      }
+    }
+  },
+  "device": {
+    "login": {
+      "name": "{integration} login ({account})"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "expires": {
+        "name": "Login expires",
+        "state_attributes": {
+          "signed_in_at": {
+            "name": "Signed in at"
+          },
+          "last_notice": {
+            "name": "Last notice"
+          },
+          "last_result": {
+            "name": "Last result"
+          }
+        }
+      }
+    },
+    "binary_sensor": {
+      "renewal_due": {
+        "name": "Renewal due"
+      }
+    },
+    "button": {
+      "send_link": {
+        "name": "Send link"
+      }
+    }
+  },
+  "exceptions": {
+    "my_missing": {
+      "message": "The My Home Assistant integration is not loaded, and without it Home Assistant cannot build the {integration} link. Add `my:` (or `default_config:`) to configuration.yaml and restart."
+    },
+    "missing_credentials": {
+      "message": "The application credentials of {integration} are missing or unavailable. Add the Client ID and the Client Secret again in Settings, Devices & services, Application credentials."
+    },
+    "pkce": {
+      "message": "{integration} signs in with PKCE, where the secret is created and lost together with the window of Home Assistant that started it. A link cannot renew this kind of sign-in."
+    },
+    "unsupported": {
+      "message": "{integration} does not sign in through a plain authorization page, so a link cannot renew it."
+    },
+    "flow_failed": {
+      "message": "The reauthentication of {integration} failed inside Home Assistant ({error}). Update Home Assistant to {min_version} or newer, update {integration} and try again."
+    },
+    "flow_aborted": {
+      "message": "{integration} refused the reauthentication ({reason}). Update Home Assistant to {min_version} or newer, check {integration} and try again."
+    },
+    "login_gone": {
+      "message": "This login is no longer in Home Assistant."
+    },
+    "no_account": {
+      "message": "{integration} does not say which account this login belongs to, so Home Assistant would refuse the renewal as another account."
+    },
+    "owner_none": {
+      "message": "No one was chosen to receive the link. Send it to the owner yourself: the Generate links action returns it."
+    },
+    "owner_unreachable": {
+      "message": "None of the notify actions of the owner worked. Check the phone, or send the link with the Generate links action."
+    },
+    "no_logins": {
+      "message": "No login was added to Reauth Link yet."
+    }
+  },
+  "services": {
+    "generate_link": {
+      "name": "Generate links",
+      "description": "Returns the renewal link of each login, to send by another channel (administrators only)."
+    }
+  },
+  "common": {
+    "page_lang": "en",
+    "date_format": "%B %-d, %Y",
+    "channel": "Login renewal",
+    "page_done_title": "All set!",
+    "page_done_text": "The {integration} login was renewed. You can close this page.",
+    "page_already_title": "Already done",
+    "page_already_text": "This renewal was finished before. You can close this page.",
+    "page_invalid_title": "This link is no longer valid",
+    "page_invalid_text": "It was used already or it expired. Ask for a new one.",
+    "page_denied_title": "Nothing changed",
+    "page_denied_text": "The authorization was canceled. If that was not on purpose, open the link again.",
+    "page_account_title": "That is another account",
+    "page_account_text": "Sign out of it on the {integration} website and open the link again with the right account.",
+    "page_premium_title": "Not a Premium account",
+    "page_premium_text": "{integration} only gives this access to Premium accounts.",
+    "page_incomplete_title": "Almost there",
+    "page_incomplete_text": "{integration} did not accept this authorization. You will get a new link: approve everything it asks for.",
+    "page_received_title": "Received",
+    "page_received_text": "The authorization arrived, and {integration} is still starting. There is nothing else to do now: you will be told when it is done.",
+    "page_failed_title": "That did not work",
+    "page_failed_text": "Open the link again and approve right away. If it happens again, tell whoever takes care of this Home Assistant.",
+    "owner_title": "{integration}",
+    "owner_renew": "Tap to renew the login of {account}, which expires on {date}. Sign in and tap Agree.",
+    "owner_expired": "Tap to renew the login of {account}: it may have expired on {date}. Sign in and tap Agree.",
+    "owner_unknown": "Tap to renew the login of {account}. Sign in and tap Agree.",
+    "owner_again": "Tap to renew the login of {account} again: the last time did not go through. Sign in and tap Agree.",
+    "owner_done": "Renewed until {date}. Thank you!",
+    "admin_title": "Login renewal",
+    "admin_done": "{integration} ({account}): renewed until {date}.",
+    "admin_late": "{integration} ({account}): the owner has not renewed yet, and the login expires on {date}.",
+    "admin_expired": "{integration} ({account}): the owner has not renewed, and the login may have expired on {date}.",
+    "admin_unknown": "{integration} ({account}): the owner has not renewed yet, and the expiry date is not known.",
+    "admin_rejected": "{integration} ({account}): the owner approved, but the integration asks to sign in again, as when a permission is missing. A new link goes out with the next notices.",
+    "admin_unconfirmed": "{integration} ({account}): the owner approved, but the integration has not come back yet. If it does not load soon, check it in Home Assistant: a permission may be missing, and the Send link button sends a new link.",
+    "admin_link_off": "{integration} ({account}): the link was turned off after 10 failed attempts, such as another account. A new one goes out with the next notices; the Send link button sends it now.",
+    "admin_failed": "{integration} ({account}): the owner did not get the link. {reason}",
+    "reason_my_missing": "The My Home Assistant integration is not loaded, and without it Home Assistant cannot build the {integration} link. Add `my:` (or `default_config:`) to configuration.yaml and restart.",
+    "reason_missing_credentials": "The application credentials of {integration} are missing or unavailable. Add the Client ID and the Client Secret again in Settings, Devices & services, Application credentials.",
+    "reason_pkce": "{integration} signs in with PKCE, where the secret is created and lost together with the window of Home Assistant that started it. A link cannot renew this kind of sign-in.",
+    "reason_unsupported": "{integration} does not sign in through a plain authorization page, so a link cannot renew it.",
+    "reason_flow_failed": "The reauthentication of {integration} failed inside Home Assistant ({error}). Update Home Assistant to {min_version} or newer, update {integration} and try again.",
+    "reason_flow_aborted": "{integration} refused the reauthentication ({reason}). Update Home Assistant to {min_version} or newer, check {integration} and try again.",
+    "reason_login_gone": "This login is no longer in Home Assistant.",
+    "reason_no_account": "{integration} does not say which account this login belongs to, so Home Assistant would refuse the renewal as another account.",
+    "reason_owner_none": "No one was chosen to receive the link. Send it to the owner yourself: the Generate links action returns it.",
+    "reason_owner_unreachable": "None of the notify actions of the owner worked. Check the phone, or send the link with the Generate links action."
+  }
+}

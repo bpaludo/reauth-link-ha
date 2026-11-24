@@ -1,0 +1,248 @@
+{
+  "title": "Reauth Link for Spotify",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Reauth Link for Spotify",
+        "description": "O login do Spotify vence em 6 meses. Esta integração manda um link ao dono da conta, que renova no próprio celular, sem abrir o Home Assistant. Configure antes o Spotify ou a SpotifyPlus.",
+        "data": {
+          "url": "Endereço público deste Home Assistant (https)",
+          "time": "Hora dos avisos"
+        },
+        "data_description": {
+          "url": "É para onde o Spotify devolve o dono depois que ele aprova: o celular precisa conseguir abri-lo. Serve o domínio próprio ou o Home Assistant Cloud (Nabu Casa). O http comum não serve: o Spotify só aceita https.",
+          "time": "Quando há o que avisar, o aviso sai a esta hora do dia."
+        }
+      },
+      "login": {
+        "title": "Login a renovar",
+        "description": "Antes, cadastre este endereço nas Redirect URIs do seu app, no painel de desenvolvedor do Spotify, e mantenha o que já está lá:\n\n`{redirect_uri}`",
+        "data": {
+          "login": "Login",
+          "owner": "Avisar o dono da conta",
+          "admin": "Avisar o integrador",
+          "days": "Dias que o login vale"
+        },
+        "data_description": {
+          "login": "Só os logins do Spotify e da SpotifyPlus já configurados.",
+          "owner": "Recebe o link 30 dias antes do vencimento e de novo a cada 7 dias, até renovar.",
+          "admin": "Avisado quando renova, quando o dono não renovou nos últimos 7 dias e quando o link não pode ser criado. Pode ficar vazio.",
+          "days": "O Spotify dá 6 meses. Os 180 ficam um pouco abaixo, de propósito."
+        }
+      },
+      "reconfigure": {
+        "title": "Reauth Link for Spotify",
+        "description": "Se mudar o endereço, cadastre o novo nas Redirect URIs do seu app, no painel de desenvolvedor do Spotify. Os links já enviados deixam de valer. O endereço cadastrado hoje é:\n\n`{redirect_uri}`",
+        "data": {
+          "url": "Endereço público deste Home Assistant (https)",
+          "time": "Hora dos avisos"
+        },
+        "data_description": {
+          "url": "É para onde o Spotify devolve o dono depois que ele aprova: o celular precisa conseguir abri-lo. Serve o domínio próprio ou o Home Assistant Cloud (Nabu Casa). O http comum não serve: o Spotify só aceita https.",
+          "time": "Quando há o que avisar, o aviso sai a esta hora do dia."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Use https seguido de um nome que o celular alcance de fora, e não um endereço IP ou um nome .local.",
+      "not_https": "O Spotify só aceita https, porque o login passa por este endereço. Use um domínio próprio com https ou o Home Assistant Cloud (Nabu Casa).",
+      "my_missing": "A integração My Home Assistant não está carregada, e sem ela o Home Assistant não monta o link de {integration}. Ponha `my:` (ou `default_config:`) no configuration.yaml e reinicie.",
+      "missing_credentials": "As credenciais do aplicativo de {integration} faltam ou estão indisponíveis. Cadastre de novo o Client ID e o Client Secret em Configurações, Dispositivos e serviços, Credenciais do aplicativo.",
+      "pkce": "{integration} faz login com PKCE, em que o segredo nasce e morre com a janela do Home Assistant que o abriu. Um link não renova esse tipo de login.",
+      "unsupported": "{integration} não faz login por uma página de autorização comum, e um link não o renova.",
+      "flow_failed": "A reautenticação de {integration} falhou dentro do Home Assistant ({error}). Atualize o Home Assistant para a {min_version} ou mais nova, atualize {integration} e tente de novo.",
+      "flow_aborted": "{integration} recusou a reautenticação ({reason}). Atualize o Home Assistant para a {min_version} ou mais nova, confira {integration} e tente de novo.",
+      "login_gone": "Este login não está mais no Home Assistant.",
+      "no_account": "{integration} não diz de que conta é este login, e o Home Assistant recusaria a renovação como outra conta.",
+      "invalid_notify": "Esta ação não existe neste Home Assistant. Escolha uma da lista, como notify.mobile_app_meu_celular (uma entidade não serve aqui).",
+      "nobody": "Escolha quem recebe os avisos: o dono, o integrador ou os dois."
+    },
+    "abort": {
+      "single_instance_allowed": "Já está configurada. Para outra conta, use “Adicionar login” nela.",
+      "reconfigure_successful": "Salvo."
+    },
+    "create_entry": {
+      "default": "Falta um passo: cadastre este endereço nas Redirect URIs do seu app, no painel de desenvolvedor do Spotify, se ainda não o fez, e mantenha o que já está lá:\n\n`{redirect_uri}`"
+    }
+  },
+  "config_subentries": {
+    "login": {
+      "entry_type": "Login",
+      "initiate_flow": {
+        "user": "Adicionar login",
+        "reconfigure": "Mudar o login"
+      },
+      "step": {
+        "user": {
+          "title": "Adicionar login",
+          "description": "Antes, cadastre este endereço nas Redirect URIs do seu app, no painel de desenvolvedor do Spotify, e mantenha o que já está lá:\n\n`{redirect_uri}`",
+          "data": {
+            "login": "Login",
+            "owner": "Avisar o dono da conta",
+            "admin": "Avisar o integrador",
+            "days": "Dias que o login vale"
+          },
+          "data_description": {
+            "login": "Só os logins do Spotify e da SpotifyPlus já configurados.",
+            "owner": "Recebe o link 30 dias antes do vencimento e de novo a cada 7 dias, até renovar.",
+            "admin": "Avisado quando renova, quando o dono não renovou nos últimos 7 dias e quando o link não pode ser criado. Pode ficar vazio.",
+            "days": "O Spotify dá 6 meses. Os 180 ficam um pouco abaixo, de propósito."
+          }
+        },
+        "reconfigure": {
+          "title": "Mudar o login",
+          "description": "Quem recebe os avisos de {login} e por quanto tempo o login vale.",
+          "data": {
+            "owner": "Avisar o dono da conta",
+            "admin": "Avisar o integrador",
+            "days": "Dias que o login vale"
+          },
+          "data_description": {
+            "owner": "Recebe o link 30 dias antes do vencimento e de novo a cada 7 dias, até renovar.",
+            "admin": "Avisado quando renova, quando o dono não renovou nos últimos 7 dias e quando o link não pode ser criado. Pode ficar vazio.",
+            "days": "O Spotify dá 6 meses. Os 180 ficam um pouco abaixo, de propósito."
+          }
+        }
+      },
+      "error": {
+        "my_missing": "A integração My Home Assistant não está carregada, e sem ela o Home Assistant não monta o link de {integration}. Ponha `my:` (ou `default_config:`) no configuration.yaml e reinicie.",
+        "missing_credentials": "As credenciais do aplicativo de {integration} faltam ou estão indisponíveis. Cadastre de novo o Client ID e o Client Secret em Configurações, Dispositivos e serviços, Credenciais do aplicativo.",
+        "pkce": "{integration} faz login com PKCE, em que o segredo nasce e morre com a janela do Home Assistant que o abriu. Um link não renova esse tipo de login.",
+        "unsupported": "{integration} não faz login por uma página de autorização comum, e um link não o renova.",
+        "flow_failed": "A reautenticação de {integration} falhou dentro do Home Assistant ({error}). Atualize o Home Assistant para a {min_version} ou mais nova, atualize {integration} e tente de novo.",
+        "flow_aborted": "{integration} recusou a reautenticação ({reason}). Atualize o Home Assistant para a {min_version} ou mais nova, confira {integration} e tente de novo.",
+        "login_gone": "Este login não está mais no Home Assistant.",
+        "no_account": "{integration} não diz de que conta é este login, e o Home Assistant recusaria a renovação como outra conta.",
+        "invalid_notify": "Esta ação não existe neste Home Assistant. Escolha uma da lista, como notify.mobile_app_meu_celular (uma entidade não serve aqui).",
+        "nobody": "Escolha quem recebe os avisos: o dono, o integrador ou os dois."
+      },
+      "abort": {
+        "no_logins": "Não há outro login do Spotify ou da SpotifyPlus neste Home Assistant.",
+        "already_configured": "Este login já foi adicionado.",
+        "reconfigure_successful": "Salvo."
+      }
+    }
+  },
+  "device": {
+    "login": {
+      "name": "Login {integration} ({account})"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "expires": {
+        "name": "Vencimento do login",
+        "state_attributes": {
+          "signed_in_at": {
+            "name": "Login feito em"
+          },
+          "last_notice": {
+            "name": "Último aviso"
+          },
+          "last_result": {
+            "name": "Último resultado"
+          }
+        }
+      }
+    },
+    "binary_sensor": {
+      "renewal_due": {
+        "name": "Renovação pendente"
+      }
+    },
+    "button": {
+      "send_link": {
+        "name": "Enviar o link"
+      }
+    }
+  },
+  "exceptions": {
+    "my_missing": {
+      "message": "A integração My Home Assistant não está carregada, e sem ela o Home Assistant não monta o link de {integration}. Ponha `my:` (ou `default_config:`) no configuration.yaml e reinicie."
+    },
+    "missing_credentials": {
+      "message": "As credenciais do aplicativo de {integration} faltam ou estão indisponíveis. Cadastre de novo o Client ID e o Client Secret em Configurações, Dispositivos e serviços, Credenciais do aplicativo."
+    },
+    "pkce": {
+      "message": "{integration} faz login com PKCE, em que o segredo nasce e morre com a janela do Home Assistant que o abriu. Um link não renova esse tipo de login."
+    },
+    "unsupported": {
+      "message": "{integration} não faz login por uma página de autorização comum, e um link não o renova."
+    },
+    "flow_failed": {
+      "message": "A reautenticação de {integration} falhou dentro do Home Assistant ({error}). Atualize o Home Assistant para a {min_version} ou mais nova, atualize {integration} e tente de novo."
+    },
+    "flow_aborted": {
+      "message": "{integration} recusou a reautenticação ({reason}). Atualize o Home Assistant para a {min_version} ou mais nova, confira {integration} e tente de novo."
+    },
+    "login_gone": {
+      "message": "Este login não está mais no Home Assistant."
+    },
+    "no_account": {
+      "message": "{integration} não diz de que conta é este login, e o Home Assistant recusaria a renovação como outra conta."
+    },
+    "owner_none": {
+      "message": "Ninguém foi escolhido para receber o link. Mande-o ao dono você mesmo: a ação Gerar os links o devolve."
+    },
+    "owner_unreachable": {
+      "message": "Nenhuma das ações de aviso do dono funcionou. Confira o celular, ou mande o link pela ação Gerar os links."
+    },
+    "no_logins": {
+      "message": "Nenhum login foi adicionado ao Reauth Link ainda."
+    }
+  },
+  "services": {
+    "generate_link": {
+      "name": "Gerar os links",
+      "description": "Devolve o link de renovação de cada login, para mandar por outro canal (só para administradores)."
+    }
+  },
+  "common": {
+    "page_lang": "pt-BR",
+    "date_format": "%d/%m/%Y",
+    "channel": "Renovação de login",
+    "page_done_title": "Pronto!",
+    "page_done_text": "O login de {integration} foi renovado. Pode fechar esta página.",
+    "page_already_title": "Já estava pronto",
+    "page_already_text": "Esta renovação já foi concluída. Pode fechar esta página.",
+    "page_invalid_title": "Este link não vale mais",
+    "page_invalid_text": "Ele já foi usado ou venceu. Peça um novo.",
+    "page_denied_title": "Nada mudou",
+    "page_denied_text": "A autorização foi cancelada. Se foi sem querer, abra o link de novo.",
+    "page_account_title": "Essa é outra conta",
+    "page_account_text": "Saia dela no site de {integration} e abra o link de novo com a conta certa.",
+    "page_premium_title": "Conta sem Premium",
+    "page_premium_text": "{integration} só libera esse acesso para contas Premium.",
+    "page_incomplete_title": "Quase",
+    "page_incomplete_text": "{integration} não aceitou esta autorização. Você vai receber um link novo: aprove tudo o que ele pedir.",
+    "page_received_title": "Recebido",
+    "page_received_text": "A autorização chegou, e {integration} ainda está iniciando. Não há mais nada a fazer agora: você será avisado quando concluir.",
+    "page_failed_title": "Não deu certo",
+    "page_failed_text": "Abra o link de novo e aprove em seguida. Se repetir, avise quem cuida deste Home Assistant.",
+    "owner_title": "{integration}",
+    "owner_renew": "Toque para renovar o login de {account}, que vence em {date}. Entre e toque em Concordo.",
+    "owner_expired": "Toque para renovar o login de {account}: ele pode ter vencido em {date}. Entre e toque em Concordo.",
+    "owner_unknown": "Toque para renovar o login de {account}. Entre e toque em Concordo.",
+    "owner_again": "Toque para renovar o login de {account} de novo: da última vez não concluiu. Entre e toque em Concordo.",
+    "owner_done": "Renovado até {date}. Obrigado!",
+    "admin_title": "Renovação de login",
+    "admin_done": "{integration} ({account}): renovado até {date}.",
+    "admin_late": "{integration} ({account}): o dono ainda não renovou, e o login vence em {date}.",
+    "admin_expired": "{integration} ({account}): o dono não renovou, e o login pode ter vencido em {date}.",
+    "admin_unknown": "{integration} ({account}): o dono ainda não renovou, e a data do vencimento não é conhecida.",
+    "admin_rejected": "{integration} ({account}): o dono aprovou, mas a integração pede login de novo, como quando falta uma permissão. Um link novo sai com os próximos avisos.",
+    "admin_unconfirmed": "{integration} ({account}): o dono aprovou, mas a integração ainda não voltou. Se ela não carregar logo, confira no Home Assistant: pode faltar uma permissão, e o botão Enviar o link manda um link novo.",
+    "admin_link_off": "{integration} ({account}): o link foi desligado depois de 10 tentativas que falharam, como outra conta. Um novo sai com os próximos avisos; o botão Enviar o link o manda já.",
+    "admin_failed": "{integration} ({account}): o dono não recebeu o link. {reason}",
+    "reason_my_missing": "A integração My Home Assistant não está carregada, e sem ela o Home Assistant não monta o link de {integration}. Ponha `my:` (ou `default_config:`) no configuration.yaml e reinicie.",
+    "reason_missing_credentials": "As credenciais do aplicativo de {integration} faltam ou estão indisponíveis. Cadastre de novo o Client ID e o Client Secret em Configurações, Dispositivos e serviços, Credenciais do aplicativo.",
+    "reason_pkce": "{integration} faz login com PKCE, em que o segredo nasce e morre com a janela do Home Assistant que o abriu. Um link não renova esse tipo de login.",
+    "reason_unsupported": "{integration} não faz login por uma página de autorização comum, e um link não o renova.",
+    "reason_flow_failed": "A reautenticação de {integration} falhou dentro do Home Assistant ({error}). Atualize o Home Assistant para a {min_version} ou mais nova, atualize {integration} e tente de novo.",
+    "reason_flow_aborted": "{integration} recusou a reautenticação ({reason}). Atualize o Home Assistant para a {min_version} ou mais nova, confira {integration} e tente de novo.",
+    "reason_login_gone": "Este login não está mais no Home Assistant.",
+    "reason_no_account": "{integration} não diz de que conta é este login, e o Home Assistant recusaria a renovação como outra conta.",
+    "reason_owner_none": "Ninguém foi escolhido para receber o link. Mande-o ao dono você mesmo: a ação Gerar os links o devolve.",
+    "reason_owner_unreachable": "Nenhuma das ações de aviso do dono funcionou. Confira o celular, ou mande o link pela ação Gerar os links."
+  }
+}

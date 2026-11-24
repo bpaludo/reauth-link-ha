@@ -1,0 +1,15 @@
+{
+  "domain": "reauth_link",
+  "name": "Reauth Link for Spotify",
+  "after_dependencies": ["cloud", "mobile_app", "spotify", "spotifyplus"],
+  "codeowners": ["@bpaludo"],
+  "config_flow": true,
+  "dependencies": ["http"],
+  "documentation": "https://github.com/bpaludo/reauth-link-ha",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/bpaludo/reauth-link-ha/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.3.0b1"
+}
