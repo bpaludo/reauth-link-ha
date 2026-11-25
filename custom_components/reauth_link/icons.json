@@ -1,0 +1,18 @@
+{
+  "entity": {
+    "sensor": {
+      "status": {
+        "default": "mdi:account-key",
+        "state": {
+          "up_to_date": "mdi:check-circle",
+          "renewal_due": "mdi:calendar-alert",
+          "received": "mdi:timer-sand",
+          "rejected": "mdi:close-circle",
+          "maybe_expired": "mdi:calendar-remove",
+          "date_unknown": "mdi:calendar-question",
+          "integration_down": "mdi:lan-disconnect"
+        }
+      }
+    }
+  }
+}

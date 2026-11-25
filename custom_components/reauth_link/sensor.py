@@ -1,4 +1,4 @@
-"""When the sign-in expires."""
+"""When the sign-in expires, and how the login is."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import DOMAIN
+from .const import DOMAIN, LoginStatus
 from .entity import ReauthLinkEntity
 
 
@@ -22,7 +22,11 @@ async def async_setup_entry(
     manager = hass.data[DOMAIN]
     for subentry in manager.subentries():
         async_add_entities(
-            [ExpiresSensor(manager, subentry, "expires")], config_subentry_id=subentry.subentry_id
+            [
+                ExpiresSensor(manager, subentry, "expires"),
+                StatusSensor(manager, subentry, "status"),
+            ],
+            config_subentry_id=subentry.subentry_id,
         )
 
 
@@ -47,3 +51,16 @@ class ExpiresSensor(ReauthLinkEntity, SensorEntity):
             "last_notice": state.last_notice,
             "last_result": state.last_result,
         }
+
+
+class StatusSensor(ReauthLinkEntity, SensorEntity):
+    """How the login is. An estimate: it goes by the last sign-in we know of, and reads no token."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_options = [status.value for status in LoginStatus]
+
+    @property
+    def native_value(self) -> LoginStatus | None:
+        """No attributes on purpose: there is nothing else to tell."""
+        return self.manager.status(self.subentry)

@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 import hashlib
 import hmac
 import logging
+import math
 import secrets
 from typing import Any
 
@@ -45,6 +46,7 @@ from .const import (
     CONF_URL,
     DEFAULT_DAYS,
     DOMAIN,
+    DOWN_AFTER,
     ESCALATE_BEFORE_DAYS,
     EVENT_FINISHED,
     LINK_MARGIN,
@@ -54,9 +56,11 @@ from .const import (
     NOTIFY_BEFORE_DAYS,
     NOTIFY_TIMEOUT,
     REPEAT_DAYS,
+    RETURN_LIMIT,
     SETTLE_TIMEOUT,
     SIGNAL_UPDATED,
     SUBENTRY_LOGIN,
+    LoginStatus,
 )
 from .oauth import (
     ReauthLinkError,
@@ -74,6 +78,12 @@ _LOGGER = logging.getLogger(__name__)
 _SUCCESS = {"reauth_successful", "reconfigure_successful"}
 _DATA_SHARED = f"{DOMAIN}_shared"
 _BUSY = {ConfigEntryState.SETUP_IN_PROGRESS, ConfigEntryState.UNLOAD_IN_PROGRESS}
+# never a step of a reload
+_FAILED = {
+    ConfigEntryState.SETUP_ERROR,
+    ConfigEntryState.MIGRATION_ERROR,
+    ConfigEntryState.FAILED_UNLOAD,
+}
 
 
 def _store(hass: HomeAssistant) -> Store[dict[str, Any]]:
@@ -123,6 +133,7 @@ class LoginState:
     used: str | None = None  # the last finished link, so reloading the page says "already done"
     unconfirmed_at: str | None = None  # approved, but the integration has not come back yet
     rejected: bool = False  # the last renewal left the integration asking to sign in again
+    approved_at: str | None = None  # of one refused later, which may still come back by itself
     last_notice: str | None = None  # the owner was told
     last_late: str | None = None  # the administrator was told the owner has not renewed
     last_problem: str | None = None  # the administrator was told the owner could not be reached
@@ -130,6 +141,29 @@ class LoginState:
 
 
 _FIELDS = {f.name for f in fields(LoginState)}
+_DATES = (
+    "signed_in_at",
+    "link_at",
+    "unconfirmed_at",
+    "approved_at",
+    "last_notice",
+    "last_late",
+    "last_problem",
+)
+
+
+def _saved_state(saved: dict[str, Any]) -> LoginState:
+    """What was saved, but for what a newer version may have added and for dates that cannot be read."""
+    known = {k: v for k, v in saved.items() if k in _FIELDS}
+    return LoginState(**known | {k: None for k in _DATES if not _is_date(known.get(k))})
+
+
+def _is_date(value: Any) -> bool:
+    try:
+        date = dt_util.parse_datetime(value) if isinstance(value, str) else None
+    except ValueError:  # well formed and impossible, such as February 30
+        return False
+    return date is not None and date.tzinfo is not None and 2000 <= date.year < 3000
 
 
 @dataclass
@@ -144,6 +178,8 @@ class _Shared:
     )
     # codes tried with the current link of each login: how many times, by digest. Never saved
     tried: defaultdict[str, dict[str, int]] = field(default_factory=lambda: defaultdict(dict))
+    # logins whose integration is not working: which entry, and since when (the loop's clock). Never saved
+    broken: dict[str, tuple[str, float]] = field(default_factory=dict)
 
 
 class ReauthLinkManager:
@@ -176,17 +212,16 @@ class ReauthLinkManager:
             saved = await self._store.async_load() or {}
             shared.url = saved.get("url", url)
             for key, value in saved.get("logins", {}).items():
-                # a newer version may have saved more
-                shared.states[key] = LoginState(**{k: v for k, v in value.items() if k in _FIELDS})
+                shared.states[key] = _saved_state(value)
             shared.loaded = True
         if shared.url != url:
             # a link already sent carries the old address: Spotify would refuse the code
             for state in shared.states.values():
                 state.link = state.link_at = None
             shared.url = url
-        for subentry in self.subentries():
-            domain = subentry.data[CONF_DOMAIN]
+        for domain in {*const.SUPPORTED_DOMAINS, *(s.data[CONF_DOMAIN] for s in self.subentries())}:
             self.names[domain] = await async_integration_name(self.hass, domain)
+        await async_texts(self.hass)  # in the cache, for the repairs
         self._sync_states()
         await self._async_save()
 
@@ -202,6 +237,12 @@ class ReauthLinkManager:
             )
         except Exception as err:  # e.g. a full disk: the renewal itself is not lost
             _LOGGER.error("Could not save: %s", type(err).__name__)
+        self._publish()
+
+    @callback
+    def _publish(self) -> None:
+        """Tell the entities and the repairs."""
+        self._watch()
         async_dispatcher_send(self.hass, SIGNAL_UPDATED)
 
     def _sync_states(self) -> bool:
@@ -228,50 +269,88 @@ class ReauthLinkManager:
 
     @callback
     def async_sync(self) -> None:
-        """A login changed in Home Assistant."""
+        """A login changed in Home Assistant, or a minute went by."""
         changed = self._sync_states()
-        for subentry in self.subentries():
-            changed = self._reconcile(subentry) or changed
-        if changed:
+        if self._settle(self.subentries()) or changed:
             self.hass.async_create_task(self._async_save())
         else:
-            async_dispatcher_send(self.hass, SIGNAL_UPDATED)
+            self._publish()
 
     @callback
-    def _reconcile(self, subentry: ConfigSubentry) -> bool:
-        """A login that was left waiting, or refused, is working now."""
+    def _settle(self, subentries: list[ConfigSubentry]) -> bool:
+        """Reconcile them and announce what came out, with the entities and the repairs already right."""
+        changed, outcomes = False, []
+        for subentry in subentries:
+            did, outcome = self._reconcile(subentry)
+            changed = changed or did
+            if outcome is not None:
+                outcomes.append((subentry, outcome))
+        if changed:
+            self._publish()
+        for subentry, outcome in outcomes:
+            if (target := self.target(subentry)) is not None:
+                self._announce(subentry, target, outcome)
+        return changed
+
+    @callback
+    def _reconcile(self, subentry: ConfigSubentry) -> tuple[bool, str | None]:
+        """A login that was left waiting, or refused, is working now. Or one left waiting was refused.
+
+        Says whether something changed, and the outcome to announce.
+        """
         target, state = self.target(subentry), self.state(subentry)
         if (
             target is None
             or state is None
             or not (state.unconfirmed_at or state.rejected)
-            or self._shared.locks[subentry.subentry_id].locked()  # a renewal is deciding it
-            or target.state is not ConfigEntryState.LOADED
+            or self.deciding(subentry)
         ):
-            return False
-        if state.unconfirmed_at:
-            self._confirm(subentry, target, state)
-        elif not async_requests(self.hass, target):  # signed in again by hand
-            state.signed_in_at = dt_util.utcnow().isoformat()
-            state.rejected = False
-            state.last_notice = state.last_late = state.last_problem = None
-        else:
-            return False
-        return True
+            return False, None
+        if target.state is not ConfigEntryState.LOADED:
+            if (
+                state.unconfirmed_at is None
+                or target.state is not ConfigEntryState.SETUP_ERROR
+                or not async_requests(self.hass, target)
+            ):
+                return False, None
+            state.approved_at = state.unconfirmed_at  # it took longer than the page waits
+            self._refuse(state)
+            state.last_result = "not_accepted"
+            return True, state.last_result
+        if state.unconfirmed_at is None:
+            if async_requests(self.hass, target):
+                return False, None
+            if state.approved_at is None:  # signed in again by hand
+                state.signed_in_at = dt_util.utcnow().isoformat()
+                state.rejected = False
+                state.last_notice = state.last_late = state.last_problem = None
+                return True, None
+            # by itself or by hand, there is no telling: the earlier date is the safe one
+            state.unconfirmed_at = state.approved_at
+        self._confirm(target, state)
+        state.last_result = "reauth_successful"
+        return True, state.last_result
 
     @callback
-    def _confirm(
-        self, subentry: ConfigSubentry, target: ConfigEntry, state: LoginState, announce: bool = True
-    ) -> None:
+    def _confirm(self, target: ConfigEntry, state: LoginState) -> None:
         """The integration took the new sign-in."""
         state.signed_in_at, state.unconfirmed_at = state.unconfirmed_at, None
-        state.rejected = False
+        state.rejected, state.approved_at = False, None
         state.last_notice = state.last_late = state.last_problem = None
         for stale in async_requests(self.hass, target):  # asked before the new sign-in got there
             async_close_flow(self.hass, stale)
-        if announce:
-            state.last_result = "reauth_successful"
-            self._announce(subentry, target, state.last_result)
+
+    @staticmethod
+    def _refuse(state: LoginState) -> None:
+        """The integration took the new sign-in, and asks for another."""
+        state.unconfirmed_at, state.rejected = None, True
+        state.used = None  # opening the link again must not say "already done"
+        state.last_notice = None  # a new link goes out in the next round
+
+    @callback
+    def deciding(self, subentry: ConfigSubentry) -> bool:
+        """A renewal of this login is on its way: what it leaves behind is not known yet."""
+        return self._shared.locks[subentry.subentry_id].locked()
 
     def subentries(self) -> list[ConfigSubentry]:
         """The logins the user chose."""
@@ -294,7 +373,7 @@ class ReauthLinkManager:
         days = int(subentry.data.get(CONF_DAYS, DEFAULT_DAYS))
         return dt_util.parse_datetime(state.signed_in_at, raise_on_error=True) + timedelta(days=days)
 
-    def _days_left(self, subentry: ConfigSubentry, now: datetime) -> int:
+    def days_left(self, subentry: ConfigSubentry, now: datetime) -> int:
         """Whole days, by the calendar of this Home Assistant. An unknown date counts as today."""
         if (expires := self.expires_at(subentry)) is None:
             return 0
@@ -304,8 +383,84 @@ class ReauthLinkManager:
         """Is it time to renew?"""
         if (state := self.state(subentry)) is None:
             return False
-        left = self._days_left(subentry, now or dt_util.utcnow())
+        left = self.days_left(subentry, now or dt_util.utcnow())
         return state.rejected or left <= NOTIFY_BEFORE_DAYS
+
+    # ---------------------------------------------------------------- how each login is
+    @callback
+    def status(self, subentry: ConfigSubentry, now: datetime | None = None) -> LoginStatus | None:
+        """What to show about a login. None: it was removed from Home Assistant, or disabled.
+
+        The first one that applies, as in the README: the last approval, then the date, then whether
+        the integration works, then the time left. About the date it is an estimate: it goes by the
+        last sign-in we know of, and no token is read.
+        """
+        target, state = self.target(subentry), self.state(subentry)
+        if target is None or state is None:
+            return None
+        now = now or dt_util.utcnow()
+        if state.unconfirmed_at is not None:
+            return LoginStatus.INTEGRATION_DOWN if self.late(subentry, now) else LoginStatus.RECEIVED
+        if state.rejected:
+            return LoginStatus.REJECTED
+        expires = self.expires_at(subentry)
+        if expires is not None and expires <= now:
+            return LoginStatus.MAYBE_EXPIRED
+        if self._down(subentry, target):
+            return LoginStatus.INTEGRATION_DOWN
+        if expires is None:
+            return LoginStatus.DATE_UNKNOWN
+        return LoginStatus.RENEWAL_DUE if self.due(subentry, now) else LoginStatus.UP_TO_DATE
+
+    @callback
+    def late(self, subentry: ConfigSubentry, now: datetime) -> bool:
+        """Approved, and a day later the integration still did not come back."""
+        target, state = self.target(subentry), self.state(subentry)
+        return (
+            target is not None
+            and state is not None
+            and state.unconfirmed_at is not None
+            and target.state is not ConfigEntryState.LOADED
+            and now - dt_util.parse_datetime(state.unconfirmed_at, raise_on_error=True) >= RETURN_LIMIT
+        )
+
+    @callback
+    def _working(self, target: ConfigEntry) -> bool:
+        return target.state is ConfigEntryState.LOADED and not async_requests(self.hass, target)
+
+    @callback
+    def _watch(self) -> None:
+        """Since when each integration has not been working. A login that left, or was redone, starts over."""
+        broken, now, seen = self._shared.broken, self.hass.loop.time(), set()
+        for subentry in self.subentries():
+            target = self.target(subentry)
+            if target is None or self._working(target):
+                continue
+            seen.add(subentry.subentry_id)
+            if target.state in _FAILED:  # no need to wait, nor when it is tried again
+                broken[subentry.subentry_id] = (target.entry_id, -math.inf)
+            elif broken.get(subentry.subentry_id, ("", 0))[0] != target.entry_id:
+                broken[subentry.subentry_id] = (target.entry_id, now)
+        for gone in set(broken) - seen:
+            del broken[gone]
+
+    @callback
+    def _down(self, subentry: ConfigSubentry, target: ConfigEntry) -> bool:
+        """It failed; or it is not loaded, or asks to sign in again, for longer than a reload takes."""
+        if self._working(target):
+            return False
+        entry_id, since = self._shared.broken.get(subentry.subentry_id, ("", 0))
+        return entry_id == target.entry_id and self.hass.loop.time() - since >= DOWN_AFTER
+
+    @callback
+    def unlisted(self) -> list[ConfigEntry]:
+        """The logins in this Home Assistant that nobody chose to renew."""
+        chosen = {
+            target.entry_id
+            for subentry in self.subentries()
+            if (target := self.target(subentry)) is not None
+        }
+        return [target for target in async_targets(self.hass) if target.entry_id not in chosen]
 
     # ---------------------------------------------------------------- links
     async def async_link(self, subentry: ConfigSubentry) -> str:
@@ -415,17 +570,15 @@ class ReauthLinkManager:
             if outcome in _SUCCESS:
                 # spent, whatever comes next: saved before waiting for the integration
                 state.used, state.link, state.link_at, state.attempts = received, None, None, 0
-                state.unconfirmed_at = dt_util.utcnow().isoformat()
+                state.unconfirmed_at, state.approved_at = dt_util.utcnow().isoformat(), None
                 self._shared.tried.pop(subentry.subentry_id, None)
                 await self._async_save()
                 verdict = await self._async_verdict(target)
                 if verdict == "asks":
                     outcome = "not_accepted"
-                    state.unconfirmed_at, state.rejected = None, True
-                    state.used = None  # opening it again must not say "already done"
-                    state.last_notice = None  # a new link goes out in the next round
+                    self._refuse(state)
                 elif verdict == "ok":
-                    self._confirm(subentry, target, state, announce=False)
+                    self._confirm(target, state)
                 else:
                     outcome = "unconfirmed"
             elif tried[digest] == 1:  # reloading the page tries the same code again
@@ -438,6 +591,7 @@ class ReauthLinkManager:
             state.last_result = outcome
             await self._async_save()
         _LOGGER.info("Renewing %s: %s", target.domain, outcome)
+        self._publish()  # the repairs were waiting for it
         self._announce(subentry, target, outcome)
         self.async_sync()  # it may have come back in the meantime
         return outcome
@@ -571,7 +725,7 @@ class ReauthLinkManager:
         await self._async_save()
 
     async def _async_cycle_login(self, subentry: ConfigSubentry, now: datetime) -> None:
-        self._reconcile(subentry)
+        self._settle([subentry])
         state = self.state(subentry)
         if state is None or self.target(subentry) is None or not self.due(subentry, now):
             return
@@ -590,7 +744,7 @@ class ReauthLinkManager:
                 reason = texts.get(f"reason_{problem}", problem).format(**values)
                 if await self._async_notify(subentry, "admin", "admin_failed", reason=reason):
                     state.last_problem = now.isoformat()
-        left, expires = self._days_left(subentry, now), self.expires_at(subentry)
+        left, expires = self.days_left(subentry, now), self.expires_at(subentry)
         if left <= ESCALATE_BEFORE_DAYS and self._again(state.last_late, now):
             if expires is None:
                 key = "admin_unknown" if told_before else None  # give the owner a week first

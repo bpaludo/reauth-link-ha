@@ -33,6 +33,11 @@ most 60 days. One older than 30 days is replaced when another is sent or generat
   log the address of the way back, with the code and the state. After a renewal both are spent; after
   a refused attempt (another account, for instance) the state is still valid.
 - The `reauth_link.generate_link` action, for administrators only, returns the links.
+- The entities and the repairs show the name of the integration, the account and the date. Any user of that
+  Home Assistant can read them, and can ignore a repair. They never carry a link, a state or a code. Repairs
+  are not saved to disk with their text.
+- The downloaded diagnostics, for administrators only, have no link, state, account, address or name of a
+  notify action. Home Assistant adds its own part to that file: look at it before you post it.
 
 ## Supported versions
 

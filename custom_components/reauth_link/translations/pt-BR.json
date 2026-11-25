@@ -19,14 +19,14 @@
         "description": "Antes, cadastre este endereço nas Redirect URIs do seu app, no painel de desenvolvedor do Spotify, e mantenha o que já está lá:\n\n`{redirect_uri}`",
         "data": {
           "login": "Login",
-          "owner": "Avisar o dono da conta",
-          "admin": "Avisar o integrador",
+          "owner": "Dono da conta: ações notify",
+          "admin": "Integrador: ações notify",
           "days": "Dias que o login vale"
         },
         "data_description": {
           "login": "Só os logins do Spotify e da SpotifyPlus já configurados.",
-          "owner": "Recebe o link 30 dias antes do vencimento e de novo a cada 7 dias, até renovar.",
-          "admin": "Avisado quando renova, quando o dono não renovou nos últimos 7 dias e quando o link não pode ser criado. Pode ficar vazio.",
+          "owner": "São ações, e não entidades: notify.mobile_app_ seguido do nome do celular do dono. O app do Home Assistant cria essa ação sozinho quando o dono entra neste Home Assistant por aquele celular: não há nada a configurar. O dono recebe o link 30 dias antes do vencimento e de novo a cada 7 dias, até renovar. Sem dono aqui, o link não é mandado a ninguém: o integrador é avisado na hora certa e o repassa com a ação Gerar os links.",
+          "admin": "O mesmo tipo de ação, para o celular de quem cuida deste Home Assistant. Avisado quando renova, quando faltam 7 dias e o dono não renovou, e quando o link não pode ser criado nem enviado. Só pode ficar vazio se houver um dono.",
           "days": "O Spotify dá 6 meses. Os 180 ficam um pouco abaixo, de propósito."
         }
       },
@@ -78,14 +78,14 @@
           "description": "Antes, cadastre este endereço nas Redirect URIs do seu app, no painel de desenvolvedor do Spotify, e mantenha o que já está lá:\n\n`{redirect_uri}`",
           "data": {
             "login": "Login",
-            "owner": "Avisar o dono da conta",
-            "admin": "Avisar o integrador",
+            "owner": "Dono da conta: ações notify",
+            "admin": "Integrador: ações notify",
             "days": "Dias que o login vale"
           },
           "data_description": {
             "login": "Só os logins do Spotify e da SpotifyPlus já configurados.",
-            "owner": "Recebe o link 30 dias antes do vencimento e de novo a cada 7 dias, até renovar.",
-            "admin": "Avisado quando renova, quando o dono não renovou nos últimos 7 dias e quando o link não pode ser criado. Pode ficar vazio.",
+            "owner": "São ações, e não entidades: notify.mobile_app_ seguido do nome do celular do dono. O app do Home Assistant cria essa ação sozinho quando o dono entra neste Home Assistant por aquele celular: não há nada a configurar. O dono recebe o link 30 dias antes do vencimento e de novo a cada 7 dias, até renovar. Sem dono aqui, o link não é mandado a ninguém: o integrador é avisado na hora certa e o repassa com a ação Gerar os links.",
+            "admin": "O mesmo tipo de ação, para o celular de quem cuida deste Home Assistant. Avisado quando renova, quando faltam 7 dias e o dono não renovou, e quando o link não pode ser criado nem enviado. Só pode ficar vazio se houver um dono.",
             "days": "O Spotify dá 6 meses. Os 180 ficam um pouco abaixo, de propósito."
           }
         },
@@ -93,13 +93,13 @@
           "title": "Mudar o login",
           "description": "Quem recebe os avisos de {login} e por quanto tempo o login vale.",
           "data": {
-            "owner": "Avisar o dono da conta",
-            "admin": "Avisar o integrador",
+            "owner": "Dono da conta: ações notify",
+            "admin": "Integrador: ações notify",
             "days": "Dias que o login vale"
           },
           "data_description": {
-            "owner": "Recebe o link 30 dias antes do vencimento e de novo a cada 7 dias, até renovar.",
-            "admin": "Avisado quando renova, quando o dono não renovou nos últimos 7 dias e quando o link não pode ser criado. Pode ficar vazio.",
+            "owner": "São ações, e não entidades: notify.mobile_app_ seguido do nome do celular do dono. O app do Home Assistant cria essa ação sozinho quando o dono entra neste Home Assistant por aquele celular: não há nada a configurar. O dono recebe o link 30 dias antes do vencimento e de novo a cada 7 dias, até renovar. Sem dono aqui, o link não é mandado a ninguém: o integrador é avisado na hora certa e o repassa com a ação Gerar os links.",
+            "admin": "O mesmo tipo de ação, para o celular de quem cuida deste Home Assistant. Avisado quando renova, quando faltam 7 dias e o dono não renovou, e quando o link não pode ser criado nem enviado. Só pode ficar vazio se houver um dono.",
             "days": "O Spotify dá 6 meses. Os 180 ficam um pouco abaixo, de propósito."
           }
         }
@@ -142,6 +142,18 @@
           "last_result": {
             "name": "Último resultado"
           }
+        }
+      },
+      "status": {
+        "name": "Status do login",
+        "state": {
+          "up_to_date": "Em dia",
+          "renewal_due": "Hora de renovar",
+          "received": "Recebido (esperando a integração)",
+          "rejected": "Recusado",
+          "maybe_expired": "Talvez vencido",
+          "date_unknown": "Data desconhecida",
+          "integration_down": "Integração fora do ar"
         }
       }
     },
@@ -189,6 +201,28 @@
     },
     "no_logins": {
       "message": "Nenhum login foi adicionado ao Reauth Link ainda."
+    }
+  },
+  "issues": {
+    "expiring": {
+      "title": "Login vence em {date}: {integration} ({account})",
+      "description": "O dono da conta `{account}` ainda não renovou, e o login vence em {date}. O botão Enviar o link deste login manda o link de novo, e a ação Gerar os links o devolve, para mandar por qualquer conversa.\n\nSe ele foi renovado na tela do Home Assistant, ignore este item: uma renovação feita lá não é percebida."
+    },
+    "expired": {
+      "title": "Login pode ter vencido em {date}: {integration} ({account})",
+      "description": "O dono da conta `{account}` não renovou, e o login pode ter vencido em {date}. A data é uma estimativa, pelo último login que esta integração conhece. O botão Enviar o link deste login manda o link de novo, e a ação Gerar os links o devolve, para mandar por qualquer conversa.\n\nSe ele foi renovado na tela do Home Assistant, ignore este item: uma renovação feita lá não é percebida."
+    },
+    "rejected": {
+      "title": "Renovação recusada: {integration} ({account})",
+      "description": "O dono da conta `{account}` aprovou, mas {integration} pede login de novo, como quando falta uma permissão. O dono precisa de um link novo, e tem de aprovar tudo o que ele pedir. Se há um dono escolhido, o link sai com os próximos avisos, ou já pelo botão Enviar o link deste login. A ação Gerar os links o devolve, para mandar por qualquer conversa."
+    },
+    "not_back": {
+      "title": "Não voltou depois da renovação: {integration} ({account})",
+      "description": "O dono da conta `{account}` aprovou há mais de um dia, e {integration} não carregou desde então. Confira em Configurações, Dispositivos e serviços. Se faltar uma permissão, o dono precisa de um link novo: o botão Enviar o link deste login o manda, e a ação Gerar os links o devolve."
+    },
+    "unlisted": {
+      "title": "Fora do Reauth Link: {integration} ({account})",
+      "description": "A conta `{account}` está neste Home Assistant, mas ninguém será avisado antes de o login vencer. Adicione-a em Configurações, Dispositivos e serviços, Reauth Link, Adicionar login. Se ela não deve ser renovada por link, ou não pode ser adicionada, ignore este item."
     }
   },
   "services": {

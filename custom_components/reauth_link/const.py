@@ -1,6 +1,7 @@
 """Constants for Reauth Link."""
 
 from datetime import timedelta
+from enum import StrEnum
 from typing import Final
 
 DOMAIN: Final = "reauth_link"
@@ -46,7 +47,23 @@ MAX_ATTEMPTS: Final = 10  # different failed codes before a link dies
 MAX_TRIES: Final = 3  # exchanges of the very same code
 NOTIFY_TIMEOUT: Final = 30  # seconds, per notify action
 SETTLE_TIMEOUT: Final = 20  # seconds, for the target to reload before the page answers
+DOWN_AFTER: Final = 50  # seconds not loaded before the status says so: a reload takes less
+RETURN_LIMIT: Final = timedelta(days=1)  # approved, and the integration did not come back
 
 SIGNAL_UPDATED: Final = f"{DOMAIN}_updated"
 EVENT_FINISHED: Final = f"{DOMAIN}_finished"
 SERVICE_GENERATE_LINK: Final = "generate_link"
+
+README_URL: Final = "https://github.com/bpaludo/reauth-link-ha"
+
+
+class LoginStatus(StrEnum):
+    """What the status sensor shows. Which one wins is decided in one place: `manager.status`."""
+
+    UP_TO_DATE = "up_to_date"
+    RENEWAL_DUE = "renewal_due"
+    RECEIVED = "received"
+    REJECTED = "rejected"
+    MAYBE_EXPIRED = "maybe_expired"
+    DATE_UNKNOWN = "date_unknown"
+    INTEGRATION_DOWN = "integration_down"

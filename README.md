@@ -66,9 +66,10 @@ Other logins go in through **Add login**. One address serves them all.
 
 ## Notifications
 
-Both fields take `notify` **actions**, such as `notify.mobile_app_my_phone`. The Home Assistant app
-creates that action by itself when it signs in to your Home Assistant; there is nothing to set up.
-Notify *entities* do not work yet.
+Both fields take `notify` **actions**, not entities. The usual one is
+`notify.mobile_app_` followed by the name of the phone: the Home Assistant app creates it by itself
+when someone signs in to your Home Assistant on that phone, so there is nothing to set up. Not in the
+list? Sign in on that phone first. Notify *entities* do not work yet.
 
 Home Assistant does not always know that a phone is gone: a notice to a phone without the app may count
 as sent. The 7-day notice to the administrator covers that.
@@ -80,7 +81,8 @@ as sent. The 7-day notice to the administrator covers that.
 
 ### No app on the owner's phone
 
-Leave the owner empty and set yourself as the administrator. You are told when it is time. The
+Leave the owner empty and set yourself as the administrator. Then **nobody is sent the link**: you are
+told when it is time, once a week, and the Send link button says that no one was chosen. The
 **Generate links** action (`reauth_link.generate_link`, administrators only) returns the link, to
 send through any chat. It works once, for up to 60 days. A link older than 30 days is replaced when a new
 one is sent or generated.
@@ -89,11 +91,76 @@ one is sent or generated.
 
 For each login, a device with:
 
-- a sensor with the date the login expires;
-- a binary sensor (problem) that turns on when a renewal is due;
-- a button that sends the link right away.
+- **Login status**, a sensor (see below);
+- **Login expires**, a sensor with the date;
+- **Renewal due**, a binary sensor (problem) that turns on 30 days before the date;
+- **Send link**, a button that sends the link right away.
 
 And the event `reauth_link_finished`, with `domain`, `config_entry_id` and `result`.
+
+### Login status
+
+The first line that applies, from the top:
+
+| Status | State | When |
+|---|---|---|
+| | `unavailable` | the login was removed from Home Assistant, or disabled |
+| Received (waiting for the integration) | `received` | the owner approved, and the integration has not come back yet |
+| Integration down | `integration_down` | the owner approved, and a day later the integration still has not come back |
+| Refused | `rejected` | the owner approved, but the integration asks to sign in again, as when a permission is missing |
+| May have expired | `maybe_expired` | the date has passed |
+| Integration down | `integration_down` | the integration failed to start; or, for a minute or two, it has not been loaded, or has been asking to sign in again |
+| Date unknown | `date_unknown` | the integration is older than Home Assistant keeping that date; the first renewal fixes it |
+| Time to renew | `renewal_due` | 30 days or less |
+| Up to date | `up_to_date` | none of the above |
+
+**It is an estimate.** This integration never reads the token: it goes by the date of the last sign-in it
+knows of. "Up to date" does not prove that Spotify still accepts the login, and a renewal made by hand on
+the Home Assistant screen is not noticed.
+
+### Card example
+
+Only cards that come with Home Assistant. Replace `ACCOUNT` with your account, as it shows in the entity
+IDs. For SpotifyPlus they start with `spotifyplus_login_`. If Home Assistant was in Brazilian Portuguese
+when the login was added, the IDs are in Portuguese: pick the four entities of the login's device in the
+card editor.
+
+```yaml
+type: entities
+title: Spotify login
+entities:
+  - entity: sensor.spotify_login_ACCOUNT_login_status
+    name: Status
+  - entity: sensor.spotify_login_ACCOUNT_login_expires
+    name: Expires
+    format: date
+  - entity: binary_sensor.spotify_login_ACCOUNT_renewal_due
+    name: Renewal due
+  - entity: button.spotify_login_ACCOUNT_send_link
+    name: Send the link to the owner
+```
+
+The button sends the notice as soon as it is pressed.
+
+### Repairs
+
+In **Settings → System → Repairs**, one for each problem of each login:
+
+| Repair | Shows up | Goes away |
+|---|---|---|
+| The login expires, or may have expired, on ... | 7 days before the date, if not renewed. Not if the date is unknown | when it is renewed by link |
+| The renewal was refused | when the integration asks to sign in again after the owner approved | when it is renewed, or signed in again by hand |
+| Not back since the renewal | a day after the owner approved, if the integration has not loaded | when it loads, or for a day more when another link is approved |
+| Not in Reauth Link | when there is a Spotify or SpotifyPlus login that was not added here | when it is added |
+
+All of them also go away when the login, or this integration, is removed or disabled. If you ignore one, it
+stays ignored until that problem is over, or until the login or this integration is disabled.
+
+### Diagnostics
+
+**Download diagnostics**, in the menu of the integration, gives dates, counts and states to attach to a
+report. This integration puts no link, account, address or name of a notify action in it. Home Assistant
+adds its own part, such as versions, the time zone and the list of your custom integrations.
 
 ## The public address: what it does and does not do
 
@@ -125,10 +192,12 @@ The reason is shown where you add the login, and told to the administrator if it
 
 - The date counts from when the integration entry was created and from each renewal made **by this
   integration**. A renewal made by hand on the Home Assistant screen is not noticed: it will just ask
-  earlier than needed.
+  earlier than needed, and its repair has to be ignored.
 - Spotify always shows its approval page. There is no renewal without the owner.
 - Changing the address invalidates the links already sent, and the new one must be registered in the
   Spotify app.
+- Taking a login off the list and adding it again forgets its renewals: the date goes back to when the
+  integration entry was created.
 - Texts: English and Brazilian Portuguese. Other languages get English.
 
 ## Support

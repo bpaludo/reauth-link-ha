@@ -19,14 +19,14 @@
         "description": "First, add this address to the Redirect URIs of your app in the Spotify developer dashboard, and keep the one already there:\n\n`{redirect_uri}`",
         "data": {
           "login": "Login",
-          "owner": "Notify the account owner",
-          "admin": "Notify the administrator",
+          "owner": "Account owner: notify actions",
+          "admin": "Administrator: notify actions",
           "days": "Days a sign-in lasts"
         },
         "data_description": {
           "login": "Only logins of Spotify and SpotifyPlus that are already set up.",
-          "owner": "Gets the link 30 days before the sign-in expires, and again every 7 days until it is renewed.",
-          "admin": "Told when it is renewed, when the owner has not renewed it in the last 7 days, and when the link cannot be created. May stay empty.",
+          "owner": "Actions, not entities: notify.mobile_app_ followed by the name of the owner's phone. The Home Assistant app creates that action by itself when the owner signs in to this Home Assistant on that phone, so there is nothing to set up. The owner gets the link 30 days before the sign-in expires, and again every 7 days until it is renewed. With no owner here, nobody is sent the link: the administrator is told when it is time, and sends it on with the Generate links action.",
+          "admin": "The same kind of action, for the phone of whoever looks after this Home Assistant. Told when it is renewed, when 7 days are left and the owner has not renewed it, and when the link cannot be created or sent. It can only be left empty if there is an owner.",
           "days": "Spotify gives 6 months. 180 is a little under that, on purpose."
         }
       },
@@ -78,14 +78,14 @@
           "description": "First, add this address to the Redirect URIs of your app in the Spotify developer dashboard, and keep the one already there:\n\n`{redirect_uri}`",
           "data": {
             "login": "Login",
-            "owner": "Notify the account owner",
-            "admin": "Notify the administrator",
+            "owner": "Account owner: notify actions",
+            "admin": "Administrator: notify actions",
             "days": "Days a sign-in lasts"
           },
           "data_description": {
             "login": "Only logins of Spotify and SpotifyPlus that are already set up.",
-            "owner": "Gets the link 30 days before the sign-in expires, and again every 7 days until it is renewed.",
-            "admin": "Told when it is renewed, when the owner has not renewed it in the last 7 days, and when the link cannot be created. May stay empty.",
+            "owner": "Actions, not entities: notify.mobile_app_ followed by the name of the owner's phone. The Home Assistant app creates that action by itself when the owner signs in to this Home Assistant on that phone, so there is nothing to set up. The owner gets the link 30 days before the sign-in expires, and again every 7 days until it is renewed. With no owner here, nobody is sent the link: the administrator is told when it is time, and sends it on with the Generate links action.",
+            "admin": "The same kind of action, for the phone of whoever looks after this Home Assistant. Told when it is renewed, when 7 days are left and the owner has not renewed it, and when the link cannot be created or sent. It can only be left empty if there is an owner.",
             "days": "Spotify gives 6 months. 180 is a little under that, on purpose."
           }
         },
@@ -93,13 +93,13 @@
           "title": "Change login",
           "description": "Who is told about {login}, and how long the sign-in lasts.",
           "data": {
-            "owner": "Notify the account owner",
-            "admin": "Notify the administrator",
+            "owner": "Account owner: notify actions",
+            "admin": "Administrator: notify actions",
             "days": "Days a sign-in lasts"
           },
           "data_description": {
-            "owner": "Gets the link 30 days before the sign-in expires, and again every 7 days until it is renewed.",
-            "admin": "Told when it is renewed, when the owner has not renewed it in the last 7 days, and when the link cannot be created. May stay empty.",
+            "owner": "Actions, not entities: notify.mobile_app_ followed by the name of the owner's phone. The Home Assistant app creates that action by itself when the owner signs in to this Home Assistant on that phone, so there is nothing to set up. The owner gets the link 30 days before the sign-in expires, and again every 7 days until it is renewed. With no owner here, nobody is sent the link: the administrator is told when it is time, and sends it on with the Generate links action.",
+            "admin": "The same kind of action, for the phone of whoever looks after this Home Assistant. Told when it is renewed, when 7 days are left and the owner has not renewed it, and when the link cannot be created or sent. It can only be left empty if there is an owner.",
             "days": "Spotify gives 6 months. 180 is a little under that, on purpose."
           }
         }
@@ -142,6 +142,18 @@
           "last_result": {
             "name": "Last result"
           }
+        }
+      },
+      "status": {
+        "name": "Login status",
+        "state": {
+          "up_to_date": "Up to date",
+          "renewal_due": "Time to renew",
+          "received": "Received (waiting for the integration)",
+          "rejected": "Refused",
+          "maybe_expired": "May have expired",
+          "date_unknown": "Date unknown",
+          "integration_down": "Integration down"
         }
       }
     },
@@ -189,6 +201,28 @@
     },
     "no_logins": {
       "message": "No login was added to Reauth Link yet."
+    }
+  },
+  "issues": {
+    "expiring": {
+      "title": "Login expires on {date}: {integration} ({account})",
+      "description": "The owner of the account `{account}` has not renewed it, and it expires on {date}. The Send link button of this login sends the link again, and the Generate links action returns it, to send through any chat.\n\nIf it was renewed on the Home Assistant screen, ignore this item: a renewal made there is not noticed."
+    },
+    "expired": {
+      "title": "Login may have expired on {date}: {integration} ({account})",
+      "description": "The owner of the account `{account}` has not renewed it, and it may have expired on {date}. The date is an estimate, by the last sign-in this integration knows of. The Send link button of this login sends the link again, and the Generate links action returns it, to send through any chat.\n\nIf it was renewed on the Home Assistant screen, ignore this item: a renewal made there is not noticed."
+    },
+    "rejected": {
+      "title": "Renewal refused: {integration} ({account})",
+      "description": "The owner of the account `{account}` approved, but {integration} asks to sign in again, as when a permission is missing. The owner needs a new link, and has to approve everything it asks for. If an owner was chosen, it goes out with the next notices, or now with the Send link button of this login. The Generate links action returns it, to send through any chat."
+    },
+    "not_back": {
+      "title": "Not back since the renewal: {integration} ({account})",
+      "description": "The owner of the account `{account}` approved more than a day ago, and {integration} has not loaded since. Check it in Settings, Devices & services. If a permission is missing, the owner needs a new link: the Send link button of this login sends it, and the Generate links action returns it."
+    },
+    "unlisted": {
+      "title": "Not in Reauth Link: {integration} ({account})",
+      "description": "The account `{account}` is in this Home Assistant, but nobody will be told before its sign-in expires. Add it in Settings, Devices & services, Reauth Link, Add login. If it should not be renewed by link, or cannot be added, ignore this item."
     }
   },
   "services": {
